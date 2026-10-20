@@ -1,0 +1,126 @@
+CREATE TABLE customers (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  vat_id VARCHAR(30),
+  email VARCHAR(160)
+);
+
+CREATE SEQUENCE invoice_seq START WITH 1000;
+
+CREATE TABLE invoices (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  number VARCHAR(30) NOT NULL UNIQUE,
+  customer_id BIGINT NOT NULL REFERENCES customers(id),
+  status VARCHAR(16) NOT NULL,
+  total_cents BIGINT NOT NULL,
+  paid_cents BIGINT NOT NULL DEFAULT 0,
+  currency CHAR(3) NOT NULL,
+  due_date DATE NOT NULL,
+  issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  cancel_reason VARCHAR(200)
+);
+
+CREATE TABLE invoice_lines (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id BIGINT NOT NULL REFERENCES invoices(id),
+  description VARCHAR(120) NOT NULL,
+  quantity INT NOT NULL,
+  unit_cents BIGINT NOT NULL
+);
+
+CREATE TABLE invoice_notes (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id BIGINT NOT NULL REFERENCES invoices(id),
+  note VARCHAR(500) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE payment_links (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id BIGINT NOT NULL REFERENCES invoices(id),
+  token VARCHAR(64) NOT NULL UNIQUE,
+  amount_cents BIGINT NOT NULL,
+  reference VARCHAR(32) NOT NULL,
+  return_url VARCHAR(300),
+  callback_url VARCHAR(300),
+  status VARCHAR(16) NOT NULL
+);
+
+CREATE TABLE payments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  link_id BIGINT NOT NULL REFERENCES payment_links(id),
+  invoice_id BIGINT NOT NULL REFERENCES invoices(id),
+  amount_cents BIGINT NOT NULL,
+  method VARCHAR(8) NOT NULL,
+  status VARCHAR(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE payment_notes (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  payment_id BIGINT NOT NULL REFERENCES payments(id),
+  note VARCHAR(140)
+);
+
+CREATE TABLE credit_notes (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  number VARCHAR(40) NOT NULL,
+  invoice_id BIGINT NOT NULL REFERENCES invoices(id),
+  amount_cents BIGINT NOT NULL,
+  reason VARCHAR(200) NOT NULL,
+  category VARCHAR(24) NOT NULL,
+  customer_ref VARCHAR(60) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE recon_imports (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  file_name VARCHAR(200) NOT NULL,
+  fingerprint VARCHAR(64) NOT NULL UNIQUE,
+  batch_date DATE NOT NULL,
+  status VARCHAR(16) NOT NULL
+);
+
+CREATE TABLE recon_lines (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  import_id BIGINT NOT NULL REFERENCES recon_imports(id),
+  reference VARCHAR(80),
+  amount_cents BIGINT NOT NULL,
+  description VARCHAR(300)
+);
+
+CREATE TABLE recon_uploads (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  original_name VARCHAR(255) NOT NULL,
+  stored_name VARCHAR(255) NOT NULL,
+  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE payout_accounts (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  holder_name VARCHAR(100) NOT NULL,
+  iban_sealed VARCHAR(200) NOT NULL,
+  bank_code VARCHAR(11) NOT NULL,
+  verification_url VARCHAR(300) NOT NULL,
+  notify_url VARCHAR(300) NOT NULL,
+  status VARCHAR(16) NOT NULL
+);
+
+CREATE TABLE report_presets (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(80) NOT NULL,
+  where_clause VARCHAR(400) NOT NULL
+);
+
+CREATE TABLE saved_filters (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(80) NOT NULL,
+  where_clause VARCHAR(400) NOT NULL
+);
+
+CREATE TABLE audit_log (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  event VARCHAR(40) NOT NULL,
+  detail VARCHAR(600),
+  at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
